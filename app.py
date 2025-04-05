@@ -58,20 +58,67 @@ def predict():
     if model is None:
         return jsonify({'error': 'Modelo no cargado'}), 500
     
+    image = None
+    image_bytes = None
+    
     try:
         # Recibir imagen en formato base64
         data = request.json
         image_data = data.get('image')
         
-        # Decodificar la imagen
-        image_bytes = base64.b64decode(image_data.split(',')[1])
-        image = Image.open(io.BytesIO(image_bytes))
+        if not image_data:
+            print("Error: No se recibió ninguna imagen")
+            return jsonify({'error': 'No se recibió ninguna imagen'}), 400
+        
+        print(f"Recibiendo imagen base64 (longitud: {len(image_data)})")
+        
+        try:
+            # Decodificar la imagen - verificando el formato correcto
+            if ',' in image_data:
+                # Formato estándar: data:image/jpeg;base64,/9j/4AAQSkZJRg...
+                content_type, base64_data = image_data.split(',', 1)
+                print(f"Tipo de contenido detectado: {content_type}")
+                image_bytes = base64.b64decode(base64_data)
+            else:
+                # Intentar como base64 puro
+                print("No se detectó formato data URI, intentando como base64 puro")
+                image_bytes = base64.b64decode(image_data)
+            
+            print(f"Tamaño de bytes de imagen: {len(image_bytes)} bytes")
+            
+            # Intentar abrir la imagen
+            image = Image.open(io.BytesIO(image_bytes))
+            print(f"Imagen decodificada correctamente: {image.format}, tamaño: {image.size}, modo: {image.mode}")
+        
+        except Exception as decode_error:
+            print(f"Error al decodificar la imagen base64: {str(decode_error)}")
+            return jsonify({'error': f'Error al decodificar la imagen: {str(decode_error)}'}), 400
         
         # Preprocesar imagen
         image = image.resize((224, 224))
+        print(f"Imagen redimensionada a 224x224, modo: {image.mode}")
+        
+        # Asegurar que la imagen esté en modo RGB (convertir si es RGBA u otro modo)
+        if image.mode != 'RGB':
+            print(f"Convirtiendo imagen de {image.mode} a RGB")
+            image = image.convert('RGB')
+        
         image_array = img_to_array(image)
-        image_array = np.expand_dims(image_array, axis=0)
+        
+        # Convertir a escala de grises usando la fórmula de luminosidad ponderada
+        print("Convirtiendo imagen a escala de grises")
+        # Cálculo de la luminosidad ponderada: 0.299*R + 0.587*G + 0.114*B
+        r, g, b = image_array[:,:,0], image_array[:,:,1], image_array[:,:,2]
+        grayscale = 0.299 * r + 0.587 * g + 0.114 * b
+        
+        # Replicar el canal de escala de grises en los tres canales RGB para mantener compatibilidad con el modelo
+        grayscale_image = np.stack([grayscale, grayscale, grayscale], axis=-1)
+        
+        # Normalizar y preparar para el modelo
+        image_array = np.expand_dims(grayscale_image, axis=0)
         image_array = image_array / 255.0
+        
+        print("Imagen convertida a escala de grises y normalizada")
         
         # Realizar predicción
         predictions = model.predict(image_array)[0]
@@ -87,6 +134,12 @@ def predict():
         # Ordenar por probabilidad
         results.sort(key=lambda x: x['probability'], reverse=True)
         
+        print(f"Predicción exitosa: {results[0]['class']} con {results[0]['probability']*100:.2f}% de confianza")
+        
+        # Limpiar recursos
+        if image is not None:
+            image.close()
+        
         return jsonify({
             'predictions': results,
             'top_prediction': {
@@ -97,7 +150,16 @@ def predict():
     
     except Exception as e:
         import traceback
+        print(f"Error durante la predicción: {str(e)}")
         traceback.print_exc()
+        
+        # Asegurar limpieza de recursos
+        if image is not None:
+            try:
+                image.close()
+            except:
+                pass
+        
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':

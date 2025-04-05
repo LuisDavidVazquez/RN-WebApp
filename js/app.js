@@ -102,39 +102,73 @@ function captureAndPredict() {
     // Mostrar indicador de carga
     document.getElementById('loading').style.display = 'flex';
     
-    // Capturar imagen del video
-    const context = canvas.getContext('2d');
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    console.log('Capturando imagen desde la cámara');
     
-    // Convertir a base64
-    const imageData = canvas.toDataURL('image/jpeg');
-    
-    // Enviar al servidor para predicción
-    fetch('http://localhost:5000/predict', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ image: imageData })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error en la respuesta del servidor');
-        }
-        return response.json();
-    })
-    .then(data => {
-        displayResults(data);
-        displayConnectorInfo(data.top_prediction.class);
-    })
-    .catch(error => {
-        console.error('Error durante la predicción:', error);
-        alert('Ocurrió un error durante la predicción. Por favor, intenta de nuevo.');
+    try {
+        // Capturar imagen del video
+        const context = canvas.getContext('2d');
         
-        // Ocultar indicador de carga
+        // Asegurar que el canvas tiene dimensiones correctas
+        if (canvas.width <= 0 || canvas.height <= 0 || !streaming) {
+            console.log('Ajustando dimensiones del canvas');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+        }
+        
+        // Limpiar el canvas antes de dibujar
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Dibujar la imagen del video en el canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        console.log(`Imagen capturada con dimensiones: ${canvas.width}x${canvas.height}`);
+        
+        // Verificar que el canvas tenga datos válidos
+        const testData = canvas.toDataURL('image/jpeg', 0.1);
+        if (testData === 'data:,' || testData.length < 100) {
+            throw new Error('El canvas no contiene datos de imagen válidos');
+        }
+        
+        // Convertir a base64 con buena calidad
+        const imageData = canvas.toDataURL('image/jpeg', 0.95);
+        console.log('Longitud de datos de imagen:', imageData.length);
+        
+        // Enviar al servidor para predicción
+        console.log('Enviando imagen al servidor para procesamiento en escala de grises y predicción');
+        fetch('http://localhost:5000/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ image: imageData })
+        })
+        .then(response => {
+            console.log('Respuesta del servidor recibida, estado:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`Error en la respuesta del servidor: ${response.status} - ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Datos de predicción recibidos:', data.top_prediction.class);
+            displayResults(data);
+            displayConnectorInfo(data.top_prediction.class);
+        })
+        .catch(error => {
+            console.error('Error durante la predicción:', error);
+            alert('Ocurrió un error durante la predicción: ' + error.message);
+            
+            // Ocultar indicador de carga
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+        });
+    } catch (error) {
+        console.error('Error al capturar la imagen:', error);
+        alert('Error al capturar la imagen: ' + error.message);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('result').style.display = 'block';
-    });
+    }
 }
 
 // Función para mostrar resultados
@@ -146,13 +180,24 @@ function displayResults(data) {
     // Mostrar clase con mayor probabilidad
     const topPrediction = data.top_prediction;
     document.getElementById('detectedClass').textContent = topPrediction.class;
+    
+    // Calcular y mostrar el porcentaje de confianza
     const topConfidence = (topPrediction.probability * 100).toFixed(2);
-    document.getElementById('confidence').innerHTML = `
-        <div class="progress-container">
-            <div class="progress-bar" style="width: ${topConfidence}%"></div>
-            <span class="progress-text">${topConfidence}%</span>
-        </div>
-    `;
+    console.log(`Mostrando confianza: ${topConfidence}%`);
+    
+    // Asegurar que el elemento de confianza existe
+    const confidenceElement = document.getElementById('confidence');
+    
+    if (confidenceElement) {
+        confidenceElement.innerHTML = `
+            <div class="progress-container">
+                <div class="progress-bar" style="width: ${topConfidence}%"></div>
+                <span class="progress-text">${topConfidence}%</span>
+            </div>
+        `;
+    } else {
+        console.error('No se encontró el elemento de confianza en el DOM');
+    }
     
     // Mostrar otras predicciones
     const otherPredictionsList = document.getElementById('otherPredictions');
@@ -217,14 +262,40 @@ function handleImageImport(event) {
         return;
     }
     
+    // Limpiar resultados anteriores
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('connector-info').style.display = 'none';
+    document.getElementById('loading').style.display = 'flex';
+    
+    // Ocultar instrucciones cuando se importa una imagen
+    document.getElementById('instructions-container').style.display = 'none';
+    
+    console.log('Procesando nueva imagen:', file.name, 'tipo:', file.type, 'tamaño:', file.size);
+    
     const reader = new FileReader();
     reader.onload = function(e) {
+        console.log('Imagen leída correctamente, creando objeto Image');
         const img = new Image();
         img.onload = function() {
+            console.log('Imagen cargada, dimensiones:', img.width, 'x', img.height);
+            
+            // Inicializar el canvas con dimensiones mínimas antes de ajustarlo
+            if (canvas.width <= 0 || canvas.height <= 0) {
+                canvas.width = 640;
+                canvas.height = 480;
+                console.log('Canvas inicializado con dimensiones predeterminadas');
+            }
+            
+            // Obtener el contexto del canvas
+            const context = canvas.getContext('2d');
+            
+            // Limpiar el canvas para evitar problemas con imágenes anteriores
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            
             // Ajustar el canvas al tamaño de la imagen manteniendo proporciones
             const aspectRatio = img.width / img.height;
-            const maxWidth = video.offsetWidth;
-            const maxHeight = video.offsetHeight;
+            const maxWidth = video.offsetWidth || 640;
+            const maxHeight = video.offsetHeight || 480;
             
             let newWidth = maxWidth;
             let newHeight = maxWidth / aspectRatio;
@@ -234,6 +305,11 @@ function handleImageImport(event) {
                 newWidth = maxHeight * aspectRatio;
             }
             
+            // Asegurar dimensiones mínimas
+            newWidth = Math.max(newWidth, 224);
+            newHeight = Math.max(newHeight, 224);
+            
+            console.log('Redimensionando canvas a:', newWidth, 'x', newHeight);
             canvas.width = newWidth;
             canvas.height = newHeight;
             
@@ -241,7 +317,6 @@ function handleImageImport(event) {
             lastImportedImage = img;
             
             // Mostrar la imagen en el canvas
-            const context = canvas.getContext('2d');
             context.drawImage(img, 0, 0, newWidth, newHeight);
             
             // Mostrar el canvas y ocultar el video
@@ -251,12 +326,41 @@ function handleImageImport(event) {
             // Habilitar el botón de iniciar cámara
             document.getElementById('startBtn').disabled = false;
             
-            // Realizar la predicción
-            predictFromCanvas();
+            // Verificar que el canvas tenga datos válidos antes de continuar
+            try {
+                // Prueba para verificar que el canvas contiene datos reales
+                const testData = canvas.toDataURL('image/jpeg', 0.1);
+                if (testData === 'data:,' || testData.length < 100) {
+                    throw new Error('El canvas no contiene datos de imagen válidos');
+                }
+                
+                // Realizar la predicción
+                console.log('Canvas validado, procediendo con la predicción');
+                predictFromCanvas();
+            } catch (error) {
+                console.error('Error al validar el canvas:', error);
+                alert('Error al procesar la imagen. Por favor, intenta con otra imagen.');
+                document.getElementById('loading').style.display = 'none';
+            }
         };
+        img.onerror = function(error) {
+            console.error('Error al cargar la imagen:', error);
+            alert('No se pudo cargar la imagen. Por favor, intenta con otra.');
+            document.getElementById('loading').style.display = 'none';
+        };
+        console.log('Asignando src a la imagen');
         img.src = e.target.result;
     };
+    reader.onerror = function(error) {
+        console.error('Error al leer el archivo:', error);
+        alert('Error al leer el archivo. Por favor, intenta de nuevo.');
+        document.getElementById('loading').style.display = 'none';
+    };
+    console.log('Iniciando lectura del archivo como URL de datos');
     reader.readAsDataURL(file);
+    
+    // Limpiar el input de archivo para permitir seleccionar el mismo archivo nuevamente
+    event.target.value = '';
 }
 
 // Función para realizar predicción desde el canvas
@@ -265,35 +369,54 @@ function predictFromCanvas() {
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('result').style.display = 'none';
     
-    // Convertir a base64
-    const imageData = canvas.toDataURL('image/jpeg');
-    
-    // Enviar al servidor para predicción
-    fetch('http://localhost:5000/predict', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ image: imageData })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error en la respuesta del servidor');
-        }
-        return response.json();
-    })
-    .then(data => {
-        displayResults(data);
-        displayConnectorInfo(data.top_prediction.class);
-    })
-    .catch(error => {
-        console.error('Error durante la predicción:', error);
-        alert('Ocurrió un error durante la predicción. Por favor, intenta de nuevo.');
+    try {
+        // Convertir a base64
+        console.log('Obteniendo datos de imagen desde canvas');
+        const imageData = canvas.toDataURL('image/jpeg', 0.95);
+        console.log('Longitud de datos de imagen:', imageData.length);
         
-        // Ocultar indicador de carga
+        // Verificar que tenemos datos válidos
+        if (!imageData || imageData === 'data:,' || imageData.length < 100) {
+            throw new Error('Canvas vacío o datos de imagen inválidos');
+        }
+        
+        console.log('Enviando imagen al servidor para predicción');
+        // Enviar al servidor para predicción
+        fetch('http://localhost:5000/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ image: imageData })
+        })
+        .then(response => {
+            console.log('Respuesta del servidor recibida, estado:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`Error en la respuesta del servidor: ${response.status} - ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Datos de predicción recibidos:', data.top_prediction.class);
+            displayResults(data);
+            displayConnectorInfo(data.top_prediction.class);
+        })
+        .catch(error => {
+            console.error('Error durante la predicción:', error);
+            alert('Ocurrió un error durante la predicción: ' + error.message);
+            
+            // Ocultar indicador de carga
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+        });
+    } catch (error) {
+        console.error('Error al preparar la imagen:', error);
+        alert('Error al preparar la imagen: ' + error.message);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('result').style.display = 'block';
-    });
+    }
 }
 
 // Detener modo automático y video cuando se cierra la página

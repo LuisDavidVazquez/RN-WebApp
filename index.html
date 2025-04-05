@@ -17,7 +17,7 @@
         <div class="main-content">
             <div class="camera-container">
                 <video id="video" autoplay playsinline></video>
-                <canvas id="canvas" style="display: none;"></canvas>
+                <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
                 <div class="controls">
                     <button id="startBtn" class="btn primary">Iniciar Cámara</button>
                     <button id="captureBtn" class="btn secondary" disabled>Identificar</button>
@@ -52,7 +52,7 @@
             </div>
         </div>
 
-        <!-- Instrucciones iniciales (visibles hasta que se inicie la cámara) -->
+        <!-- Instrucciones iniciales (visibles hasta que se inicie la cámara o se importe una imagen) -->
         <div id="instructions-container" class="instructions">
             <h3>Instrucciones:</h3>
             <ol>
