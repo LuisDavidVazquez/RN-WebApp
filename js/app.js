@@ -132,14 +132,23 @@ function captureAndPredict() {
         const imageData = canvas.toDataURL('image/jpeg', 0.95);
         console.log('Longitud de datos de imagen:', imageData.length);
         
+        // Crear o actualizar el contenedor de la vista previa en escala de grises
+        const grayscaleOverlay = createGrayscaleOverlay();
+        console.log('Overlay de escala de grises creado/actualizado:', grayscaleOverlay.id);
+        
         // Enviar al servidor para predicción
         console.log('Enviando imagen al servidor para procesamiento en escala de grises y predicción');
+        console.log('Incluyendo parámetro source=camera para solicitar imagen en escala de grises');
+        
         fetch('http://localhost:5000/predict', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ image: imageData })
+            body: JSON.stringify({ 
+                image: imageData,
+                source: 'camera'  // Indicar que la imagen proviene de la cámara
+            })
         })
         .then(response => {
             console.log('Respuesta del servidor recibida, estado:', response.status);
@@ -152,6 +161,30 @@ function captureAndPredict() {
         })
         .then(data => {
             console.log('Datos de predicción recibidos:', data.top_prediction.class);
+            
+            // Mostrar la imagen en escala de grises si está disponible
+            console.log('Verificando si se recibió la imagen en escala de grises:', Boolean(data.grayscale_image));
+            if (data.grayscale_image) {
+                console.log('Mostrando vista previa en escala de grises');
+                const grayscalePreview = document.getElementById('grayscale-preview');
+                if (grayscalePreview) {
+                    console.log('Elemento grayscale-preview encontrado, asignando imagen');
+                    grayscalePreview.onload = function() {
+                        console.log('Imagen en escala de grises cargada correctamente');
+                    };
+                    grayscalePreview.onerror = function() {
+                        console.error('Error al cargar la imagen en escala de grises');
+                    };
+                    grayscalePreview.src = data.grayscale_image;
+                    grayscaleOverlay.style.display = 'flex';
+                    console.log('Vista previa en escala de grises ahora visible');
+                } else {
+                    console.error('No se encontró el elemento grayscale-preview');
+                }
+            } else {
+                console.warn('No se recibió imagen en escala de grises del servidor');
+            }
+            
             displayResults(data);
             displayConnectorInfo(data.top_prediction.class);
         })
@@ -169,6 +202,48 @@ function captureAndPredict() {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('result').style.display = 'block';
     }
+}
+
+// Función para crear o actualizar el overlay de escala de grises
+function createGrayscaleOverlay() {
+    let grayscaleOverlay = document.getElementById('grayscale-overlay');
+    
+    // Si el overlay no existe, crearlo
+    if (!grayscaleOverlay) {
+        console.log('Creando overlay para vista previa en escala de grises');
+        grayscaleOverlay = document.createElement('div');
+        grayscaleOverlay.id = 'grayscale-overlay';
+        grayscaleOverlay.className = 'grayscale-overlay';
+        
+        // Agregar título
+        const title = document.createElement('h4');
+        title.textContent = 'Vista Previa - Escala de Grises';
+        grayscaleOverlay.appendChild(title);
+        
+        // Agregar imagen
+        const img = document.createElement('img');
+        img.id = 'grayscale-preview';
+        img.alt = 'Vista previa en escala de grises';
+        grayscaleOverlay.appendChild(img);
+        
+        // Agregar botón para cerrar
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Cerrar';
+        closeBtn.className = 'btn primary close-btn';
+        closeBtn.onclick = function() {
+            grayscaleOverlay.style.display = 'none';
+        };
+        grayscaleOverlay.appendChild(closeBtn);
+        
+        // Agregar al DOM
+        const cameraContainer = document.querySelector('.camera-container');
+        cameraContainer.appendChild(grayscaleOverlay);
+    }
+    
+    // Asegurar que está inicialmente oculto
+    grayscaleOverlay.style.display = 'none';
+    
+    return grayscaleOverlay;
 }
 
 // Función para mostrar resultados

@@ -65,12 +65,13 @@ def predict():
         # Recibir imagen en formato base64
         data = request.json
         image_data = data.get('image')
+        source_type = data.get('source', 'unknown')  # Identificar si viene de cámara o importación
         
         if not image_data:
             print("Error: No se recibió ninguna imagen")
             return jsonify({'error': 'No se recibió ninguna imagen'}), 400
         
-        print(f"Recibiendo imagen base64 (longitud: {len(image_data)})")
+        print(f"Recibiendo imagen base64 (longitud: {len(image_data)}) desde: {source_type}")
         
         try:
             # Decodificar la imagen - verificando el formato correcto
@@ -114,6 +115,23 @@ def predict():
         # Replicar el canal de escala de grises en los tres canales RGB para mantener compatibilidad con el modelo
         grayscale_image = np.stack([grayscale, grayscale, grayscale], axis=-1)
         
+        # Si la solicitud proviene de la cámara, devolver también la imagen en escala de grises
+        grayscale_base64 = None
+        if source_type == 'camera':
+            print("Generando imagen en escala de grises para visualización")
+            try:
+                # Convertir array de grayscale a imagen PIL
+                grayscale_pil = Image.fromarray(grayscale_image.astype('uint8'))
+                # Convertir imagen PIL a base64
+                grayscale_buffer = io.BytesIO()
+                grayscale_pil.save(grayscale_buffer, format='JPEG', quality=90)
+                grayscale_bytes = grayscale_buffer.getvalue()
+                grayscale_base64 = f"data:image/jpeg;base64,{base64.b64encode(grayscale_bytes).decode('utf-8')}"
+                print(f"Imagen en escala de grises generada exitosamente, longitud: {len(grayscale_base64)}")
+            except Exception as grayscale_error:
+                print(f"Error al generar la imagen en escala de grises: {str(grayscale_error)}")
+                grayscale_base64 = None
+        
         # Normalizar y preparar para el modelo
         image_array = np.expand_dims(grayscale_image, axis=0)
         image_array = image_array / 255.0
@@ -140,13 +158,22 @@ def predict():
         if image is not None:
             image.close()
         
-        return jsonify({
+        response_data = {
             'predictions': results,
             'top_prediction': {
                 'class': results[0]['class'],
                 'probability': results[0]['probability']
             }
-        })
+        }
+        
+        # Añadir imagen en escala de grises si está disponible
+        if grayscale_base64:
+            response_data['grayscale_image'] = grayscale_base64
+            print("Imagen en escala de grises incluida en la respuesta")
+        else:
+            print("No se incluyó imagen en escala de grises en la respuesta")
+        
+        return jsonify(response_data)
     
     except Exception as e:
         import traceback
