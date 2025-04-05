@@ -64,9 +64,10 @@ header h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
+    position: relative;
 }
 
-#video {
+#video, #canvas {
     width: 100%;
     max-width: 500px;
     height: auto;
@@ -76,11 +77,18 @@ header h1 {
     margin-bottom: 20px;
 }
 
+#canvas {
+    display: none;
+    object-fit: contain;
+}
+
 .controls {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     justify-content: center;
+    width: 100%;
+    max-width: 500px;
 }
 
 .btn {
@@ -356,4 +364,50 @@ footer {
     .connector-name {
         margin-top: 10px;
     }
+}
+
+/* Estilos para las barras de progreso */
+.progress-container {
+    width: 100%;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    margin: 5px 0;
+    position: relative;
+    height: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    transition: width 0.3s ease-in-out;
+    border-radius: 4px;
+}
+
+.progress-text {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #000;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+.prediction-item {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin: 5px 0;
+}
+
+.prediction-name {
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+#otherPredictions li {
+    width: 100%;
+    margin: 10px 0;
 } 

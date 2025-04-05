@@ -1,0 +1,123 @@
+{
+    "Conector VGA": {
+      "compatibility": "Compatible con monitores y proyectores antiguos. No soporta audio.",
+      "speed": "No aplica (solo transmisión de video analógico)",
+      "power": "No suministra energía",
+      "uses": "Conexión de ordenadores a pantallas analógicas, proyectores antiguos. Actualmente es considerado un conector legacy."
+    },
+    "Conector HDMI": {
+      "compatibility": "Compatible con televisores, monitores, proyectores y dispositivos multimedia modernos.",
+      "speed": "HDMI 2.1: hasta 48 Gbps, HDMI 2.0: hasta 18 Gbps, HDMI 1.4: hasta 10.2 Gbps",
+      "power": "Hasta 5V/50mA, suficiente para CEC pero no para alimentar dispositivos",
+      "uses": "Transmisión de video digital de alta definición (hasta 8K) y audio multicanal. Ideal para conectar ordenadores, consolas de videojuegos, reproductores Blu-ray y dispositivos de streaming a pantallas."
+    },
+    "Conector DisplayPort": {
+      "compatibility": "Compatible con monitores modernos, especialmente en entornos profesionales.",
+      "speed": "DisplayPort 2.0: hasta 80 Gbps, DisplayPort 1.4: hasta 32.4 Gbps",
+      "power": "Hasta 3.3V/500mA en algunos puertos",
+      "uses": "Transmisión de video de alta resolución (hasta 16K) y audio. Ideal para aplicaciones profesionales, monitores múltiples y gaming de alto rendimiento."
+    },
+    "Conector USB tipo A": {
+      "compatibility": "Compatible con la mayoría de ordenadores, periféricos y dispositivos de carga.",
+      "speed": "USB 3.2: hasta 20 Gbps, USB 3.0: hasta 5 Gbps, USB 2.0: hasta 480 Mbps",
+      "power": "USB 3.0: hasta 5V/900mA, USB 2.0: hasta 5V/500mA",
+      "uses": "Conexión de periféricos, almacenamiento externo, carga de dispositivos. Estándar universal para la mayoría de conexiones no específicas."
+    },
+    "Conector USB tipo C": {
+      "compatibility": "Compatible con dispositivos modernos, incluidos smartphones, tablets, portátiles y periféricos.",
+      "speed": "USB 3.2 Gen 2x2: hasta 20 Gbps, USB4: hasta 40 Gbps con Thunderbolt compatibilidad",
+      "power": "USB Power Delivery: hasta 100W (20V/5A), permitiendo carga bidireccional",
+      "uses": "Conector universal para datos, video, audio y energía. Permite conexión reversible y es el estándar para dispositivos modernos."
+    },
+    "Conector Micro-USB": {
+      "compatibility": "Compatible con dispositivos móviles antiguos y periféricos pequeños.",
+      "speed": "USB 2.0: hasta 480 Mbps",
+      "power": "Hasta 5V/1.8A, suficiente para cargar dispositivos móviles",
+      "uses": "Carga de dispositivos móviles antiguos, conexión de periféricos pequeños y dispositivos portátiles como altavoces bluetooth, cámaras y baterías externas."
+    },
+    "Conector Lightning (Apple)": {
+      "compatibility": "Exclusivo para dispositivos Apple (iPhone, iPad, AirPods, etc.).",
+      "speed": "Hasta 480 Mbps (equivalente a USB 2.0)",
+      "power": "Hasta 5V/2.4A (12W), suficiente para cargar dispositivos móviles Apple",
+      "uses": "Carga y sincronización de dispositivos Apple. Proporciona conexión reversible y es más delgado que USB tradicional."
+    },
+    "Conector Micro HDMI": {
+      "compatibility": "Compatible con dispositivos portátiles como cámaras, tablets y smartphones.",
+      "speed": "Mismas especificaciones que HDMI estándar (hasta 18 Gbps en versión 2.0)",
+      "power": "No suministra energía significativa",
+      "uses": "Conexión de dispositivos portátiles a pantallas externas. Común en cámaras DSLR, tablets y algunos smartphones."
+    },
+    "Conector RCA": {
+      "compatibility": "Compatible con equipos de audio/video analógicos antiguos.",
+      "speed": "No aplica (señal analógica)",
+      "power": "No suministra energía",
+      "uses": "Transmisión de audio estéreo (rojo/blanco) y video compuesto (amarillo). Usado en equipos vintage, consolas antiguas y reproductores DVD."
+    },
+    "Conector RJ-45 (Ethernet)": {
+      "compatibility": "Compatible con redes LAN y equipos de networking.",
+      "speed": "Cat 8: hasta 40 Gbps, Cat 7: hasta 10 Gbps, Cat 6: hasta 1 Gbps, Cat 5e: hasta 1 Gbps",
+      "power": "Power over Ethernet (PoE): hasta 100W en PoE++ (802.3bt)",
+      "uses": "Conexión a redes LAN, conexión entre dispositivos de red como routers, switches, módems y ordenadores."
+    },
+    "Adaptador multipuerto USB hub": {
+      "compatibility": "Compatible con cualquier dispositivo que tenga puertos USB.",
+      "speed": "Depende de la versión de USB del hub (USB 3.0: hasta 5 Gbps, USB 2.0: hasta 480 Mbps)",
+      "power": "Generalmente sin alimentación propia: reparte la energía del puerto principal. Con alimentación: puede suministrar hasta 5V/2.4A por puerto",
+      "uses": "Expansión de puertos USB en ordenadores con conectividad limitada. Permite conectar múltiples periféricos simultáneamente."
+    },
+    "Adaptador de corriente multicontacto": {
+      "compatibility": "Compatible con dispositivos eléctricos estándar según la región.",
+      "speed": "No aplica",
+      "power": "Típicamente soporta hasta 110-240V, 10-15A (1100-3600W)",
+      "uses": "Distribución de energía eléctrica a múltiples dispositivos. Ideal para entornos de oficina o domésticos con múltiples dispositivos."
+    },
+    "Adaptador jack de audio de 3.5mm": {
+      "compatibility": "Compatible con la mayoría de auriculares, altavoces y equipos de audio.",
+      "speed": "No aplica (señal analógica de audio)",
+      "power": "No suministra energía significativa",
+      "uses": "Conexión de auriculares, altavoces y sistemas de audio a dispositivos reproductores. Estándar para transmisión de audio analógico."
+    },
+    "Adaptador de corriente 6 salidas": {
+      "compatibility": "Compatible con dispositivos eléctricos estándar según la región.",
+      "speed": "No aplica",
+      "power": "Típicamente soporta hasta 110-240V, 10-15A total (1100-3600W) distribuido en 6 salidas",
+      "uses": "Distribución de energía eléctrica hasta seis dispositivos. Solución eficiente para entornos con múltiples equipos electrónicos."
+    },
+    "Adaptador de corriente (clavija redonda)": {
+      "compatibility": "Compatible con laptops y dispositivos específicos que requieren este tipo de conector.",
+      "speed": "No aplica",
+      "power": "Típicamente 12-24V, 2-5A (24-120W), dependiendo del dispositivo",
+      "uses": "Alimentación de portátiles y otros dispositivos electrónicos. Los conectores redondos varían en tamaño según el fabricante y modelo."
+    },
+    "Clavija US 3 pines": {
+      "compatibility": "Estándar en América del Norte para conectar dispositivos que requieren conexión a tierra.",
+      "speed": "No aplica",
+      "power": "110-120V, hasta 15A (1800W), incluyendo conexión a tierra para mayor seguridad",
+      "uses": "Conexión segura con toma de tierra para equipos electrónicos que requieren protección adicional, como electrodomésticos y equipos médicos."
+    },
+    "Clavija US (Americana)": {
+      "compatibility": "Estándar en América del Norte y otros países que siguen normas NEMA.",
+      "speed": "No aplica",
+      "power": "110-120V, hasta 15A (1800W) en clavijas estándar",
+      "uses": "Conexión de dispositivos eléctricos a la red en Estados Unidos, Canadá y países que adoptan el estándar americano."
+    },
+    "Cargador magnetico": {
+      "compatibility": "Compatible con dispositivos específicos como algunos modelos de Apple MacBook, Microsoft Surface y smartphones con carga magnética.",
+      "speed": "Variable según el dispositivo, puede soportar USB 2.0 o USB 3.0",
+      "power": "Típicamente 5-20V, hasta 4.5A (hasta 90W) dependiendo del dispositivo",
+      "uses": "Carga rápida y segura de dispositivos específicos. Su diseño magnético permite una conexión sencilla y evita daños en los puertos al desconectarse automáticamente si se tira del cable accidentalmente."
+    },
+    "Cable Audio Óptico": {
+      "compatibility": "Compatible con equipos de audio avanzados, receptores A/V, barras de sonido y televisores.",
+      "speed": "Hasta 125 Mbps (suficiente para audio digital multicanal)",
+      "power": "No suministra energía",
+      "uses": "Transmisión de audio digital de alta calidad sin interferencias. Ideal para sistemas de home theater y audio de alta fidelidad."
+    },
+    "Cable Coaxial": {
+      "compatibility": "Compatible con televisores, decodificadores, módems de cable y antenas.",
+      "speed": "Hasta 10 Gbps en aplicaciones modernas de internet por cable",
+      "power": "No suministra energía directamente (aunque puede llevar corriente para amplificadores)",
+      "uses": "Transmisión de señales de televisión, internet por cable y radio. Ofrece blindaje contra interferencias electromagnéticas."
+    }
+  }
+  
