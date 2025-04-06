@@ -13,7 +13,7 @@ app = Flask(__name__, static_folder='.')
 CORS(app)
 
 # Cargar el modelo
-MODEL_PATH = './mejor_modelo_ft.h5'
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'mejor_modelo_ft.h5')
 model = None
 class_names = [
     'Conector Lightning (Apple)',
