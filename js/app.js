@@ -10,9 +10,24 @@ const AUTO_MODE_INTERVAL = 1500; // Intervalo para el modo automático en ms
 // Información técnica de los conectores
 let connectorInfo = {};
 
-const API_BASE_URL = window.location.origin; // Esto debería funcionar en la mayoría de los casos
+// Configuración de la API
+const getApiBaseUrl = () => {
+    // Si estamos en desarrollo local
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5000';
+    }
+    // Si estamos en Render
+    if (window.location.hostname.includes('render.com')) {
+        return 'https://conetec.onrender.com';
+    }
+    // Para otros casos (incluyendo dispositivos móviles)
+    return window.location.origin;
+};
 
-console.log('API_BASE_URL:', API_BASE_URL);
+const API_BASE_URL = getApiBaseUrl();
+console.log('Hostname:', window.location.hostname);
+console.log('Origin:', window.location.origin);
+console.log('API Base URL:', API_BASE_URL);
 
 // Cargar la información de los conectores desde el archivo JSON
 async function loadConnectorInfo() {
