@@ -10,6 +10,10 @@ const AUTO_MODE_INTERVAL = 1500; // Intervalo para el modo automático en ms
 // Información técnica de los conectores
 let connectorInfo = {};
 
+const API_BASE_URL = window.location.origin; // Esto debería funcionar en la mayoría de los casos
+
+console.log('API_BASE_URL:', API_BASE_URL);
+
 // Cargar la información de los conectores desde el archivo JSON
 async function loadConnectorInfo() {
     try {
@@ -140,62 +144,61 @@ function captureAndPredict() {
         console.log('Enviando imagen al servidor para procesamiento en escala de grises y predicción');
         console.log('Incluyendo parámetro source=camera para solicitar imagen en escala de grises');
         
-        fetch('http://localhost:5000/predict', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                image: imageData,
-                source: 'camera'  // Indicar que la imagen proviene de la cámara
+        try {
+            fetch(`${API_BASE_URL}/predict`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: imageData, source: 'camera' })
             })
-        })
-        .then(response => {
-            console.log('Respuesta del servidor recibida, estado:', response.status);
-            if (!response.ok) {
-                return response.text().then(text => {
-                    throw new Error(`Error en la respuesta del servidor: ${response.status} - ${text}`);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Datos de predicción recibidos:', data.top_prediction.class);
-            
-            // Mostrar la imagen en escala de grises si está disponible
-            console.log('Verificando si se recibió la imagen en escala de grises:', Boolean(data.grayscale_image));
-            if (data.grayscale_image) {
-                console.log('Mostrando vista previa en escala de grises');
-                const grayscalePreview = document.getElementById('grayscale-preview');
-                if (grayscalePreview) {
-                    console.log('Elemento grayscale-preview encontrado, asignando imagen');
-                    grayscalePreview.onload = function() {
-                        console.log('Imagen en escala de grises cargada correctamente');
-                    };
-                    grayscalePreview.onerror = function() {
-                        console.error('Error al cargar la imagen en escala de grises');
-                    };
-                    grayscalePreview.src = data.grayscale_image;
-                    grayscaleOverlay.style.display = 'flex';
-                    console.log('Vista previa en escala de grises ahora visible');
-                } else {
-                    console.error('No se encontró el elemento grayscale-preview');
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            } else {
-                console.warn('No se recibió imagen en escala de grises del servidor');
-            }
-            
-            displayResults(data);
-            displayConnectorInfo(data.top_prediction.class);
-        })
-        .catch(error => {
-            console.error('Error durante la predicción:', error);
-            alert('Ocurrió un error durante la predicción: ' + error.message);
-            
-            // Ocultar indicador de carga
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('result').style.display = 'block';
-        });
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos de predicción recibidos:', data.top_prediction.class);
+                
+                // Mostrar la imagen en escala de grises si está disponible
+                console.log('Verificando si se recibió la imagen en escala de grises:', Boolean(data.grayscale_image));
+                if (data.grayscale_image) {
+                    console.log('Mostrando vista previa en escala de grises');
+                    const grayscalePreview = document.getElementById('grayscale-preview');
+                    if (grayscalePreview) {
+                        console.log('Elemento grayscale-preview encontrado, asignando imagen');
+                        grayscalePreview.onload = function() {
+                            console.log('Imagen en escala de grises cargada correctamente');
+                        };
+                        grayscalePreview.onerror = function() {
+                            console.error('Error al cargar la imagen en escala de grises');
+                        };
+                        grayscalePreview.src = data.grayscale_image;
+                        grayscaleOverlay.style.display = 'flex';
+                        console.log('Vista previa en escala de grises ahora visible');
+                    } else {
+                        console.error('No se encontró el elemento grayscale-preview');
+                    }
+                } else {
+                    console.warn('No se recibió imagen en escala de grises del servidor');
+                }
+                
+                displayResults(data);
+                displayConnectorInfo(data.top_prediction.class);
+            })
+            .catch(error => {
+                console.error('Error en la predicción:', error);
+                alert('Ocurrió un error durante la predicción: ' + error.message);
+                
+                // Ocultar indicador de carga
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').style.display = 'block';
+            });
+        } catch (error) {
+            console.error('Error al realizar la solicitud:', error);
+            alert('Error al realizar la solicitud: ' + error.message);
+        }
     } catch (error) {
         console.error('Error al capturar la imagen:', error);
         alert('Error al capturar la imagen: ' + error.message);
@@ -457,7 +460,7 @@ function predictFromCanvas() {
         
         console.log('Enviando imagen al servidor para predicción');
         // Enviar al servidor para predicción
-        fetch('http://localhost:5000/predict', {
+        fetch(`${API_BASE_URL}/predict`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -465,11 +468,8 @@ function predictFromCanvas() {
             body: JSON.stringify({ image: imageData })
         })
         .then(response => {
-            console.log('Respuesta del servidor recibida, estado:', response.status);
             if (!response.ok) {
-                return response.text().then(text => {
-                    throw new Error(`Error en la respuesta del servidor: ${response.status} - ${text}`);
-                });
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
@@ -479,7 +479,7 @@ function predictFromCanvas() {
             displayConnectorInfo(data.top_prediction.class);
         })
         .catch(error => {
-            console.error('Error durante la predicción:', error);
+            console.error('Error en la predicción:', error);
             alert('Ocurrió un error durante la predicción: ' + error.message);
             
             // Ocultar indicador de carga

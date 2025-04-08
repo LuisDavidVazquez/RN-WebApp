@@ -10,16 +10,23 @@ import io
 import base64
 
 app = Flask(__name__, static_folder='.')
-CORS(app)
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",  # En producción, reemplaza con tu dominio
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Cargar el modelo
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'mejor_modelo_ft.h5')
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'mejor_modelo.h5')
+
 model = None
 class_names = [
     'Conector Lightning (Apple)',
     'Cable Audio Óptico',
-    'Adaptador de corriente (clavija redonda)',
     'Clavija US (Americana)',
+    'Clavija US (Americana) 3 pines',
     'Cable Coaxial',
     'Adaptador de corriente 6 salidas',
     'Adaptador de corriente (clavija redonda)',
@@ -56,6 +63,7 @@ def serve_static(path):
 @app.route('/predict', methods=['POST'])
 def predict():
     if model is None:
+        print("Error: Modelo no cargado")
         return jsonify({'error': 'Modelo no cargado'}), 500
     
     image = None
@@ -64,8 +72,12 @@ def predict():
     try:
         # Recibir imagen en formato base64
         data = request.json
+        if not data:
+            print("Error: No se recibieron datos JSON")
+            return jsonify({'error': 'No se recibieron datos JSON'}), 400
+            
         image_data = data.get('image')
-        source_type = data.get('source', 'unknown')  # Identificar si viene de cámara o importación
+        source_type = data.get('source', 'unknown')
         
         if not image_data:
             print("Error: No se recibió ninguna imagen")
@@ -74,124 +86,111 @@ def predict():
         print(f"Recibiendo imagen base64 (longitud: {len(image_data)}) desde: {source_type}")
         
         try:
-            # Decodificar la imagen - verificando el formato correcto
+            # Decodificar la imagen
             if ',' in image_data:
-                # Formato estándar: data:image/jpeg;base64,/9j/4AAQSkZJRg...
                 content_type, base64_data = image_data.split(',', 1)
                 print(f"Tipo de contenido detectado: {content_type}")
                 image_bytes = base64.b64decode(base64_data)
             else:
-                # Intentar como base64 puro
                 print("No se detectó formato data URI, intentando como base64 puro")
                 image_bytes = base64.b64decode(image_data)
             
             print(f"Tamaño de bytes de imagen: {len(image_bytes)} bytes")
             
+            # Verificar que la imagen no esté vacía
+            if len(image_bytes) == 0:
+                print("Error: Imagen decodificada está vacía")
+                return jsonify({'error': 'La imagen está vacía'}), 400
+            
             # Intentar abrir la imagen
             image = Image.open(io.BytesIO(image_bytes))
             print(f"Imagen decodificada correctamente: {image.format}, tamaño: {image.size}, modo: {image.mode}")
+            
+            # Verificar que la imagen sea válida
+            if image.size[0] == 0 or image.size[1] == 0:
+                print("Error: Dimensiones de imagen inválidas")
+                return jsonify({'error': 'Dimensiones de imagen inválidas'}), 400
         
         except Exception as decode_error:
             print(f"Error al decodificar la imagen base64: {str(decode_error)}")
             return jsonify({'error': f'Error al decodificar la imagen: {str(decode_error)}'}), 400
         
         # Preprocesar imagen
-        image = image.resize((224, 224))
-        print(f"Imagen redimensionada a 224x224, modo: {image.mode}")
-        
-        # Asegurar que la imagen esté en modo RGB (convertir si es RGBA u otro modo)
-        if image.mode != 'RGB':
-            print(f"Convirtiendo imagen de {image.mode} a RGB")
-            image = image.convert('RGB')
-        
-        image_array = img_to_array(image)
-        
-        # Convertir a escala de grises usando la fórmula de luminosidad ponderada
-        print("Convirtiendo imagen a escala de grises")
-        # Cálculo de la luminosidad ponderada: 0.299*R + 0.587*G + 0.114*B
-        r, g, b = image_array[:,:,0], image_array[:,:,1], image_array[:,:,2]
-        grayscale = 0.299 * r + 0.587 * g + 0.114 * b
-        
-        # Replicar el canal de escala de grises en los tres canales RGB para mantener compatibilidad con el modelo
-        grayscale_image = np.stack([grayscale, grayscale, grayscale], axis=-1)
-        
-        # Si la solicitud proviene de la cámara, devolver también la imagen en escala de grises
-        grayscale_base64 = None
-        if source_type == 'camera':
-            print("Generando imagen en escala de grises para visualización")
-            try:
-                # Convertir array de grayscale a imagen PIL
-                grayscale_pil = Image.fromarray(grayscale_image.astype('uint8'))
-                # Convertir imagen PIL a base64
-                grayscale_buffer = io.BytesIO()
-                grayscale_pil.save(grayscale_buffer, format='JPEG', quality=90)
-                grayscale_bytes = grayscale_buffer.getvalue()
-                grayscale_base64 = f"data:image/jpeg;base64,{base64.b64encode(grayscale_bytes).decode('utf-8')}"
-                print(f"Imagen en escala de grises generada exitosamente, longitud: {len(grayscale_base64)}")
-            except Exception as grayscale_error:
-                print(f"Error al generar la imagen en escala de grises: {str(grayscale_error)}")
-                grayscale_base64 = None
-        
-        # Normalizar y preparar para el modelo
-        image_array = np.expand_dims(grayscale_image, axis=0)
-        image_array = image_array / 255.0
-        
-        print("Imagen convertida a escala de grises y normalizada")
+        try:
+            image = image.resize((224, 224))
+            print(f"Imagen redimensionada a 224x224, modo: {image.mode}")
+            
+            if image.mode != 'RGB':
+                print(f"Convirtiendo imagen de {image.mode} a RGB")
+                image = image.convert('RGB')
+            
+            image_array = img_to_array(image)
+            
+            # Convertir a escala de grises
+            print("Convirtiendo imagen a escala de grises")
+            r, g, b = image_array[:,:,0], image_array[:,:,1], image_array[:,:,2]
+            grayscale = 0.299 * r + 0.587 * g + 0.114 * b
+            grayscale_image = np.stack([grayscale, grayscale, grayscale], axis=-1)
+            
+            # Normalizar
+            image_array = np.expand_dims(grayscale_image, axis=0)
+            image_array = image_array / 255.0
+            
+            print("Imagen preprocesada correctamente")
+            
+        except Exception as preprocess_error:
+            print(f"Error en el preprocesamiento: {str(preprocess_error)}")
+            return jsonify({'error': f'Error en el preprocesamiento: {str(preprocess_error)}'}), 400
         
         # Realizar predicción
-        predictions = model.predict(image_array)[0]
-        
-        # Preparar resultados
-        results = []
-        for i, pred in enumerate(predictions):
-            results.append({
-                'class': class_names[i],
-                'probability': float(pred)
-            })
-        
-        # Ordenar por probabilidad
-        results.sort(key=lambda x: x['probability'], reverse=True)
-        
-        print(f"Predicción exitosa: {results[0]['class']} con {results[0]['probability']*100:.2f}% de confianza")
-        
-        # Limpiar recursos
-        if image is not None:
-            image.close()
-        
-        response_data = {
-            'predictions': results,
-            'top_prediction': {
-                'class': results[0]['class'],
-                'probability': results[0]['probability']
+        try:
+            predictions = model.predict(image_array)[0]
+            print("Predicción realizada correctamente")
+            
+            # Preparar resultados
+            results = []
+            for i, pred in enumerate(predictions):
+                results.append({
+                    'class': class_names[i],
+                    'probability': float(pred)
+                })
+            
+            results.sort(key=lambda x: x['probability'], reverse=True)
+            
+            print(f"Predicción exitosa: {results[0]['class']} con {results[0]['probability']*100:.2f}% de confianza")
+            
+            response_data = {
+                'predictions': results,
+                'top_prediction': {
+                    'class': results[0]['class'],
+                    'probability': results[0]['probability']
+                }
             }
-        }
-        
-        # Añadir imagen en escala de grises si está disponible
-        if grayscale_base64:
-            response_data['grayscale_image'] = grayscale_base64
-            print("Imagen en escala de grises incluida en la respuesta")
-        else:
-            print("No se incluyó imagen en escala de grises en la respuesta")
-        
-        return jsonify(response_data)
+            
+            return jsonify(response_data)
+            
+        except Exception as predict_error:
+            print(f"Error durante la predicción: {str(predict_error)}")
+            return jsonify({'error': f'Error durante la predicción: {str(predict_error)}'}), 500
     
     except Exception as e:
-        import traceback
-        print(f"Error durante la predicción: {str(e)}")
-        traceback.print_exc()
-        
-        # Asegurar limpieza de recursos
+        print(f"Error general: {str(e)}")
+        return jsonify({'error': f'Error general: {str(e)}'}), 500
+    
+    finally:
+        # Limpiar recursos
         if image is not None:
             try:
                 image.close()
             except:
                 pass
-        
-        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    # Cargar modelo al iniciar
-    load_tf_model()
-    # Iniciar servidor
-    print("Iniciando servidor en http://localhost:5000")
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+    try:
+        # Cargar modelo al iniciar
+        load_tf_model()
+        # Iniciar servidor
+        print("Iniciando servidor en http://localhost:5000")
+        app.run(host='0.0.0.0', port=5000, debug=True)
+    except Exception as e:
+        print(f"Error al iniciar el servidor: {str(e)}") 
